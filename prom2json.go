@@ -40,23 +40,23 @@ type Family struct {
 // Metric is for all "single value" metrics, i.e. Counter, Gauge, and Untyped.
 type Metric struct {
 	Labels map[string]string `json:"labels,omitempty"`
-	Value  string            `json:"value"`
+	Value  float64           `json:"value"`
 }
 
 // Summary mirrors the Summary proto message.
 type Summary struct {
-	Labels    map[string]string `json:"labels,omitempty"`
-	Quantiles map[string]string `json:"quantiles,omitempty"`
-	Count     string            `json:"count"`
-	Sum       string            `json:"sum"`
+	Labels    map[string]string  `json:"labels,omitempty"`
+	Quantiles map[string]float64 `json:"quantiles,omitempty"`
+	Count     uint64             `json:"count"`
+	Sum       float64            `json:"sum"`
 }
 
 // Histogram mirrors the Histogram proto message.
 type Histogram struct {
 	Labels  map[string]string `json:"labels,omitempty"`
-	Buckets map[string]string `json:"buckets,omitempty"`
-	Count   string            `json:"count"`
-	Sum     string            `json:"sum"`
+	Buckets map[string]uint64 `json:"buckets,omitempty"`
+	Count   uint64            `json:"count"`
+	Sum     float64           `json:"sum"`
 }
 
 // NewFamily consumes a MetricFamily and transforms it to the local Family type.
@@ -73,20 +73,20 @@ func NewFamily(dtoMF *dto.MetricFamily) *Family {
 			mf.Metrics[i] = Summary{
 				Labels:    makeLabels(m),
 				Quantiles: makeQuantiles(m),
-				Count:     fmt.Sprint(m.GetSummary().GetSampleCount()),
-				Sum:       fmt.Sprint(m.GetSummary().GetSampleSum()),
+				Count:     m.GetSummary().GetSampleCount(),
+				Sum:       m.GetSummary().GetSampleSum(),
 			}
 		} else if dtoMF.GetType() == dto.MetricType_HISTOGRAM {
 			mf.Metrics[i] = Histogram{
 				Labels:  makeLabels(m),
 				Buckets: makeBuckets(m),
-				Count:   fmt.Sprint(m.GetHistogram().GetSampleCount()),
-				Sum:     fmt.Sprint(m.GetSummary().GetSampleSum()),
+				Count:   m.GetHistogram().GetSampleCount(),
+				Sum:     m.GetSummary().GetSampleSum(),
 			}
 		} else {
 			mf.Metrics[i] = Metric{
 				Labels: makeLabels(m),
-				Value:  fmt.Sprint(getValue(m)),
+				Value:  getValue(m),
 			}
 		}
 	}
@@ -114,18 +114,18 @@ func makeLabels(m *dto.Metric) map[string]string {
 	return result
 }
 
-func makeQuantiles(m *dto.Metric) map[string]string {
-	result := map[string]string{}
+func makeQuantiles(m *dto.Metric) map[string]float64 {
+	result := map[string]float64{}
 	for _, q := range m.GetSummary().Quantile {
-		result[fmt.Sprint(q.GetQuantile())] = fmt.Sprint(q.GetValue())
+		result[fmt.Sprint(q.GetQuantile())] = q.GetValue()
 	}
 	return result
 }
 
-func makeBuckets(m *dto.Metric) map[string]string {
-	result := map[string]string{}
+func makeBuckets(m *dto.Metric) map[string]uint64 {
+	result := map[string]uint64{}
 	for _, b := range m.GetHistogram().Bucket {
-		result[fmt.Sprint(b.GetUpperBound())] = fmt.Sprint(b.GetCumulativeCount())
+		result[fmt.Sprint(b.GetUpperBound())] = b.GetCumulativeCount()
 	}
 	return result
 }
